@@ -1,7 +1,7 @@
 // Hidden page that records the meeting tab (plus, optionally, your mic) in short chunks
 // and sends each chunk to your Minutes app for transcription.
 
-const CHUNK_MS = 10_000;
+const CHUNK_MS = 8_000; // shorter = alerts arrive sooner
 const SILENCE_RMS = 0.006; // skip chunks that are basically silent (Whisper invents words on silence)
 const JUNK = /^(thank you\.?|thanks for watching!?|you|bye\.?|\.+|\s*)$/i;
 
@@ -99,7 +99,13 @@ async function transcribe(blob, t) {
   const form = new FormData();
   form.append("file", blob, "chunk.webm");
   const names = [cfg.name, cfg.aliases].filter(Boolean).join(", ");
-  form.append("prompt", (names ? `Meeting with ${names}. ` : "") + lastText.slice(-300));
+  // Hints that steer Whisper: names spelled right, and Roman-script Hinglish if chosen.
+  const langHint =
+    cfg.language === "hinglish"
+      ? "Hinglish meeting, Hindi words written in English letters: haan, theek hai, toh, kal tak, ho jayega. "
+      : "";
+  form.append("prompt", langHint + (names ? `Meeting with ${names}. ` : "") + lastText.slice(-300));
+  if (cfg.language === "en" || cfg.language === "hi") form.append("language", cfg.language);
   try {
     const res = await fetch(cfg.appUrl.replace(/\/$/, "") + "/api/transcribe", {
       method: "POST",

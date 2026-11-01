@@ -17,6 +17,8 @@ async function loadSettings() {
   $("aliases").value = settings.aliases || "";
   $("about").value = settings.about || "";
   $("withMic").checked = !!settings.withMic;
+  $("language").value = settings.language || "auto";
+  $("style").value = settings.style || "natural";
   if (!settings.name || !settings.appUrl) toggleSettings(true);
 }
 
@@ -34,6 +36,8 @@ $("save").onclick = async () => {
     aliases: $("aliases").value.trim(),
     about: $("about").value.trim(),
     withMic: $("withMic").checked,
+    language: $("language").value,
+    style: $("style").value,
   };
   await chrome.storage.local.set({ settings });
   $("saved").textContent = "Saved";
@@ -52,19 +56,46 @@ $("save").onclick = async () => {
 $("startBtn").onclick = () => chrome.runtime.sendMessage({ type: "stop" });
 
 // ---------- rendering ----------
-function nameRegex() {
-  const base = [settings.name, ...(settings.aliases || "").split(",")]
-    .map((s) => (s || "").trim())
-    .filter((s) => s.length >= 2);
-  if (!base.length) return null;
-  // Speech-to-text often swaps "t"/"th" (Kartik / Karthik), so accept both.
-  const parts = base.map((n) =>
-    n
-      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-      .replace(/th|t/gi, "t(?:h)?")
-  );
-  return new RegExp(`\\b(${parts.join("|")})\\b`, "i");
+// ---------- name matching ----------
+// Speech-to-text misspells names (Kartik → Karthik, Cartik, Kartic), so compare "sounds-alike" forms
+// and allow one letter of difference for longer names.
+function simplify(w) {
+  return w
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/th/g, "t")
+    .replace(/ph/g, "f")
+    .replace(/ck|c|q/g, "k")
+    .replace(/w/g, "v")
+    .replace(/(.)\1+/g, "$1")
+    .replace(/[^a-z\u0900-\u097f]/g, "");
 }
+
+function editDistance(a, b) {
+  if (Math.abs(a.length - b.length) > 1) return 2;
+  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return dp[a.length][b.length];
+}
+
+function myNames() {
+  return [settings.name, ...(settings.aliases || "").split(",")]
+    .map((n) => simplify((n || "").trim()))
+    .filter((n) => n.length >= 2);
+}
+
+function isMyName(word, names = myNames()) {
+  const w = simplify(word);
+  if (w.length < 2) return false;
+  return names.some((n) => w === n || (n.length >= 5 && editDistance(w, n) <= 1));
+}
+
+const WORD = /[\p{L}\p{M}']+/gu;
+const mentionsMe = (text) => (text.match(WORD) || []).some((w) => isMyName(w));
 
 const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
@@ -76,15 +107,14 @@ function fmtTime(ms) {
 function renderTranscript() {
   const box = $("transcript");
   if (!lines.length) {
-    box.innerHTML = '<p class="muted small">Nothing yet. Lines appear about every 10 seconds while people talk.</p>';
+    box.innerHTML = '<p class="muted small">Nothing yet. Lines appear about every 8 seconds while people talk.</p>';
     return;
   }
-  const re = nameRegex();
+  const names = myNames();
   const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
   box.innerHTML = lines
     .map((l) => {
-      let html = esc(l.text);
-      if (re) html = html.replace(new RegExp(re.source, "gi"), (m) => `<mark>${m}</mark>`);
+      const html = esc(l.text).replace(WORD, (w) => (isMyName(w, names) ? `<mark>${w}</mark>` : w));
       return `<p><span class="ts">${fmtTime(l.t - (live.startedAt || l.t))}</span>${html}</p>`;
     })
     .join("");
@@ -126,6 +156,7 @@ async function callLive(mode, extra = {}) {
       transcript: transcriptText(),
       name: [settings.name, settings.aliases].filter(Boolean).join(" / "),
       about: settings.about,
+      style: settings.style || "natural",
       ...extra,
     }),
   });
@@ -195,7 +226,7 @@ function bindAnswerButtons() {
 
 function needTranscript() {
   if (transcriptText().length < 20) {
-    showAnswerError("Not enough has been said yet. Lines appear about every 10 seconds.");
+    showAnswerError("Not enough has been said yet. Lines appear about every 8 seconds.");
     return false;
   }
   return true;
@@ -234,15 +265,29 @@ $("askForm").onsubmit = async (e) => {
   }
 };
 
-// When your name shows up in a new line, check automatically whether you were asked something.
+// When your name shows up, check whether you're actually being asked something.
+// If the question isn't finished yet, check once more when the next line arrives.
+let retryOnNextLine = false;
+let lastAlertQuestion = "";
+
 async function autoCheck(newLines) {
-  const re = nameRegex();
-  if (!re || !newLines.some((l) => re.test(l.text))) return;
-  if (Date.now() - lastAutoCheck < AUTO_COOLDOWN_MS) return;
+  const named = newLines.some((l) => mentionsMe(l.text));
+  if (!named && !retryOnNextLine) return;
+  if (named && Date.now() - lastAutoCheck < AUTO_COOLDOWN_MS && !retryOnNextLine) return;
+  const isRetry = !named && retryOnNextLine;
+  retryOnNextLine = false;
   lastAutoCheck = Date.now();
   try {
-    const r = await callLive("asked");
-    if (r.found) renderAsked(r, true);
+    const latest = lines.slice(-3).map((l) => l.text).join("\n");
+    const r = await callLive("asked", { auto: true, latest });
+    if (r.found) {
+      const q = (r.question || "").toLowerCase();
+      if (q && q === lastAlertQuestion) return; // don't alert twice for the same question
+      lastAlertQuestion = q;
+      renderAsked(r, true);
+    } else if (!isRetry) {
+      retryOnNextLine = true; // the question may continue in the next few seconds
+    }
   } catch {}
 }
 
@@ -273,10 +318,44 @@ $("sumBtn").onclick = () => {
   chrome.tabs.create({ url: `${settings.appUrl}/#transcript=${encodeURIComponent(text)}` });
 };
 
+// ---------- past meetings ----------
+let meetings = [];
+
+function renderPast() {
+  const box = $("past");
+  $("pastBox").classList.toggle("hidden", !meetings.length);
+  box.innerHTML = meetings
+    .map((m) => {
+      const d = new Date(m.startedAt);
+      const mins = Math.max(1, Math.round((m.endedAt - m.startedAt) / 60000));
+      return `<div class="pastItem" data-id="${m.id}">
+        <div class="info"><div class="t">${esc(m.title)}</div>
+        <div class="m">${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${mins} min</div></div>
+        <button class="link sum">Summary ↗</button>
+        <button class="link copyp">Copy</button>
+        <button class="link del" title="Delete">×</button>
+      </div>`;
+    })
+    .join("");
+  box.querySelectorAll(".pastItem").forEach((el) => {
+    const m = meetings.find((x) => x.id === el.dataset.id);
+    const text = m.lines.map((l) => l.text).join("\n");
+    el.querySelector(".sum").onclick = () =>
+      chrome.tabs.create({ url: `${settings.appUrl}/#transcript=${encodeURIComponent(text)}` });
+    el.querySelector(".copyp").onclick = async (e) => {
+      await navigator.clipboard.writeText(text);
+      e.target.textContent = "Copied";
+    };
+    el.querySelector(".del").onclick = () =>
+      chrome.storage.local.set({ meetings: meetings.filter((x) => x.id !== m.id) });
+  });
+}
+
 // ---------- sync with storage ----------
 async function loadState() {
-  ({ lines = [], live = {} } = await chrome.storage.local.get(["lines", "live"]));
+  ({ lines = [], live = {}, meetings = [] } = await chrome.storage.local.get(["lines", "live", "meetings"]));
   lastSeenCount = lines.length;
+  renderPast();
   renderTranscript();
   renderStatus();
 }
@@ -287,6 +366,8 @@ chrome.storage.onChanged.addListener((changes) => {
     live = changes.live.newValue || {};
     if (live.status === "starting" && was !== "starting") {
       lastSeenCount = 0;
+      retryOnNextLine = false;
+      lastAlertQuestion = "";
       $("answer").classList.add("hidden");
     }
     renderStatus();
@@ -298,6 +379,10 @@ chrome.storage.onChanged.addListener((changes) => {
     renderTranscript();
     renderStatus();
     if (fresh.length && live.status === "listening") autoCheck(fresh);
+  }
+  if (changes.meetings) {
+    meetings = changes.meetings.newValue || [];
+    renderPast();
   }
   if (changes.settings) {
     settings = changes.settings.newValue || {};

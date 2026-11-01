@@ -73,7 +73,24 @@ async function startOnTab(tab) {
     password: settings.password,
     name: settings.name,
     aliases: settings.aliases,
+    language: settings.language || "auto",
   });
+}
+
+// Keep the last 20 meetings so you can get their summary later.
+async function archiveMeeting() {
+  await new Promise((r) => setTimeout(r, 400)); // let the last line finish saving
+  const { lines = [], live = {}, meetings = [] } = await chrome.storage.local.get(["lines", "live", "meetings"]);
+  if (!lines.length || !live.startedAt) return;
+  if (meetings.some((m) => m.startedAt === live.startedAt)) return;
+  meetings.unshift({
+    id: String(live.startedAt),
+    title: live.tabTitle || "Meeting",
+    startedAt: live.startedAt,
+    endedAt: Date.now(),
+    lines,
+  });
+  await chrome.storage.local.set({ meetings: meetings.slice(0, 20) });
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -92,7 +109,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       // Messages from the offscreen recorder
       case "rec-status": {
         await setState({ status: msg.status, error: msg.error || "" });
-        if (msg.status === "stopped") setTimeout(closeOffscreen, 500);
+        if (msg.status === "stopped") {
+          await archiveMeeting();
+          setTimeout(closeOffscreen, 500);
+        }
         break;
       }
       case "rec-text": {

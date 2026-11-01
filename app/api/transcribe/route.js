@@ -14,11 +14,12 @@ export async function POST(request) {
     );
   }
 
-  let file, prompt;
+  let file, prompt, language;
   try {
     const form = await request.formData();
     file = form.get("file");
     prompt = form.get("prompt");
+    language = form.get("language");
   } catch {
     return Response.json({ error: "Could not read the uploaded audio." }, { status: 400 });
   }
@@ -32,6 +33,7 @@ export async function POST(request) {
   out.append("response_format", "json");
   // Optional hint (previous words, names) that helps Whisper spell names right and stay consistent.
   if (typeof prompt === "string" && prompt.trim()) out.append("prompt", prompt.slice(-800));
+  if (typeof language === "string" && /^[a-z]{2}$/.test(language)) out.append("language", language);
 
   let res;
   try {

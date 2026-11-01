@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { MEETING_TYPES } from "@/lib/prompts";
 import { transcribeFile, cleanCaptions } from "@/lib/audio";
 import { toMarkdown } from "@/lib/markdown";
+import { SAMPLE_SUMMARY, SAMPLE_TRANSCRIPT } from "@/lib/sample";
 
 const HISTORY_KEY = "minutes.history.v1";
 const PASS_KEY = "minutes.password";
@@ -121,7 +122,7 @@ export default function Home() {
   function toggleDone(i) {
     const next = { ...current, done: { ...current.done, [i]: !current.done[i] } };
     setCurrent(next);
-    saveHistory(history.map((h) => (h.id === next.id ? next : h)));
+    if (next.id !== "sample") saveHistory(history.map((h) => (h.id === next.id ? next : h)));
   }
 
   function removeEntry(id) {
@@ -236,9 +237,27 @@ export default function Home() {
             )}
             {error && <div className="error">{error}</div>}
 
-            <button className="primary" onClick={summarize} disabled={!!busy || words < 5}>
-              {busy || "Summarize"}
-            </button>
+            <div className="go">
+              <button className="primary" onClick={summarize} disabled={!!busy || words < 5}>
+                {busy || "Summarize"}
+              </button>
+              {status?.passwordRequired && !password && (
+                <button
+                  className="ghost"
+                  onClick={() =>
+                    setCurrent({
+                      id: "sample",
+                      createdAt: new Date().toISOString(),
+                      summary: SAMPLE_SUMMARY,
+                      done: {},
+                      transcript: SAMPLE_TRANSCRIPT,
+                    })
+                  }
+                >
+                  No password? See a sample result
+                </button>
+              )}
+            </div>
           </section>
         )}
       </main>

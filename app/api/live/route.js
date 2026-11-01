@@ -41,13 +41,29 @@ const SCHEMAS = {
   },
 };
 
-function systemPrompt(mode, name, about) {
+const STYLES = {
+  natural: "Sound like a relaxed, confident colleague. 1-3 short sentences.",
+  short: "Keep it to one short sentence the user can say in under 5 seconds.",
+  hinglish:
+    "Write it in casual Hinglish (Hindi + English mixed, Hindi words in English letters), the way Indian colleagues talk, e.g. 'Haan, woh almost ready hai, bas sandbox key pending hai.'",
+  formal: "Polite and professional, suitable for a manager or client. 1-3 sentences.",
+};
+
+function systemPrompt(mode, name, about, style, auto) {
   const who = `The user is ${name || "the listener"}${about ? `. About them: ${about}` : ""}.`;
+  const styleRule = `Reply style: ${STYLES[style] || STYLES.natural}`;
   const base = `You are a live meeting assistant sitting next to the user during a meeting. ${who}
 The transcript is live speech-to-text: no speaker labels, some words may be wrong (names especially), and the user's own voice may be missing. Use only what is in the transcript; never invent facts, numbers or commitments.`;
 
+  if (mode === "asked" && auto)
+    return `${base}
+The user's name was just heard in the meeting. Decide whether someone is asking or requesting something from the user RIGHT NOW: look at the <latest> lines (the last ~20 seconds) first.
+Set found=true ONLY if those latest lines contain a question, request or hand-off aimed at the user (e.g. "Kartik, can you…", "what do you think, Kartik?", "over to you"). A mere mention ("Kartik sent the file", "like Kartik said") is NOT a question: set found=false.
+When found=true, fill question, asked_by, context, suggested_reply and alt_reply. ${styleRule}
+If answering needs facts the transcript doesn't contain, the reply should engage honestly and offer to confirm.`;
   if (mode === "asked")
     return `${base}
+${styleRule}
 The user lost focus and needs to know what they were just asked. Look mainly at the RECENT part (the end is the newest). Find the most recent question or request directed at the user: by name, by role, or a question to the group that is waiting for the user's input. If nothing was asked of them, set found=false and put the latest open question to the group in "question" anyway, with a reply they could give.
 The suggested_reply must sound like a person talking in a meeting, not an email. If answering needs facts the transcript doesn't contain, give a reply that engages honestly and offers to confirm (e.g. "I'll check the numbers and update everyone by tomorrow").`;
   if (mode === "catchup")
@@ -81,14 +97,18 @@ export async function POST(request) {
   const name = String(body.name || "").slice(0, 100);
   const about = String(body.about || "").slice(0, 400);
   const question = String(body.question || "").slice(0, 500);
+  const style = String(body.style || "natural");
+  const auto = Boolean(body.auto);
+  const latest = String(body.latest || "").slice(-800);
 
   const user =
     (earlier ? `<earlier>\n${earlier}\n</earlier>\n\n` : "") +
     `<recent>\n${recent}\n</recent>` +
+    (auto && latest ? `\n\n<latest>\n${latest}\n</latest>` : "") +
     (mode === "ask" ? `\n\nThe user's question: ${question}` : "");
 
   try {
-    const result = await quickJson(systemPrompt(mode, name, about), user, SCHEMAS[mode], 1200);
+    const result = await quickJson(systemPrompt(mode, name, about, style, auto), user, SCHEMAS[mode], 1200);
     return Response.json({ result });
   } catch (err) {
     return Response.json({ error: err.message || "Something went wrong." }, { status: err.status || 500 });

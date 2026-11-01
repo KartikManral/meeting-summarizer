@@ -24,10 +24,26 @@
         <input id="name" placeholder="Kartik" />
       </label>
       <label>Other names people call you <span class="muted">(optional, comma separated)</span>
-        <input id="aliases" placeholder="KM, Manral" />
+        <input id="aliases" placeholder="KM, Manral, कार्तिक" />
       </label>
       <label>About you <span class="muted">(optional, makes replies better)</span>
         <textarea id="about" rows="2" placeholder="PM intern on the checkout team; I own the payments rollout"></textarea>
+      </label>
+      <label>Meeting language
+        <select id="language">
+          <option value="auto">Auto-detect</option>
+          <option value="en">English</option>
+          <option value="hinglish">Hinglish (Hindi + English)</option>
+          <option value="hi">Hindi</option>
+        </select>
+      </label>
+      <label>Style of suggested replies
+        <select id="style">
+          <option value="natural">Natural</option>
+          <option value="short">Very short</option>
+          <option value="hinglish">Hinglish</option>
+          <option value="formal">Formal (manager / client)</option>
+        </select>
       </label>
       <label class="check"><input id="withMic" type="checkbox" /> Also record my microphone</label>
       <button id="micBtn" class="link">Allow microphone (one time)</button>
@@ -70,6 +86,11 @@
         </div>
       </div>
       <div id="transcript" class="transcript"><p class="muted small">Nothing yet.</p></div>
+
+      <details id="pastBox" class="past">
+        <summary><h2>Past meetings</h2></summary>
+        <div id="past"></div>
+      </details>
     </section>
 
     <script src="sidepanel.js"></script>
