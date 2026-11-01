@@ -25,7 +25,7 @@ It also reads Zoom / Google Meet / Teams caption files (`.vtt`, `.srt`), keeps y
 | `GROQ_API_KEY` | Transcribes audio files | console.groq.com/keys → Create API key |
 | `APP_PASSWORD` | Stops strangers using your free limits once it's online | Any password you choose |
 
-**Even simpler:** set only `GROQ_API_KEY` and it does both audio and summaries. The catch is that Groq's free limit only fits meetings up to about 30–40 minutes of talk. If a meeting is too long, the app tells you so.
+**Even simpler:** set only `GROQ_API_KEY` and it does both audio and summaries. The catch is that Groq's free limit only fits meetings up to about 20 minutes of talk. If a meeting is too long, the app tells you so.
 
 **Free-tier limits:** Gemini's free tier allows a limited number of requests per day. That's plenty for your own meetings, but heavy sharing can hit it (the app then asks you to wait). Google may use free-tier inputs to improve its products, so don't paste confidential company meetings on the free key.
 
