@@ -1,0 +1,16 @@
+Kartik: Okay, let's start. Main thing today is whether we launch the free plan in December or wait until January.
+Meera: I'd push for December. Students are on break, so sign-ups should be higher, and we beat the other two apps to it.
+Arjun: My worry is the onboarding. Right now about 40 percent of people drop off before they finish setup. If we launch with that, we waste the spike.
+Kartik: Fair. What would it take to fix onboarding?
+Arjun: Cutting it from five screens to two. Maybe ten days of work.
+Meera: Then we could still do mid-December if Arjun starts Monday.
+Kartik: Okay, let's decide: we launch the free plan on December 15, conditional on the new onboarding being done by December 8. If it isn't, we move to January 5.
+Meera: Agreed.
+Arjun: Agreed. I'll own the onboarding rewrite.
+Kartik: Meera, can you draft the launch post and the email to the waitlist by December 10?
+Meera: Yes. Do we know how many people are on the waitlist?
+Kartik: Not sure, somewhere around 800? I'll check.
+Arjun: One more risk: if the free plan is too generous, nobody upgrades. We haven't decided the limits.
+Kartik: Right, let's take that offline. I'll set up a pricing call this week.
+Meera: Also, are we doing anything on Instagram for launch or just email?
+Kartik: Good question, let's figure that out in the pricing call too.
