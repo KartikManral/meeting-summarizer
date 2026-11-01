@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Minutes Live</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand"><span class="mark">M</span> Minutes Live</div>
+      <button id="gear" class="icon" title="Settings" aria-label="Settings">⚙</button>
+    </header>
+
+    <!-- Settings -->
+    <section id="settings" class="card hidden">
+      <h2>Settings</h2>
+      <label>Your Minutes app link
+        <input id="appUrl" placeholder="https://meeting-summarizer-eight.vercel.app" />
+      </label>
+      <label>App password
+        <input id="password" type="password" />
+      </label>
+      <label>Your name
+        <input id="name" placeholder="Kartik" />
+      </label>
+      <label>Other names people call you <span class="muted">(optional, comma separated)</span>
+        <input id="aliases" placeholder="KM, Manral" />
+      </label>
+      <label>About you <span class="muted">(optional, makes replies better)</span>
+        <textarea id="about" rows="2" placeholder="PM intern on the checkout team; I own the payments rollout"></textarea>
+      </label>
+      <label class="check"><input id="withMic" type="checkbox" /> Also record my microphone</label>
+      <button id="micBtn" class="link">Allow microphone (one time)</button>
+      <div class="row">
+        <button id="save" class="primary">Save</button>
+        <span id="saved" class="muted small"></span>
+      </div>
+    </section>
+
+    <!-- Main -->
+    <section id="main">
+      <div class="status">
+        <span id="dot" class="dot"></span>
+        <span id="statusText">Not listening</span>
+        <span id="timer" class="muted"></span>
+      </div>
+      <button id="startBtn" class="primary big">Start listening to this tab</button>
+      <p id="hint" class="muted small">Open your meeting (Google Meet, Zoom or Teams in Chrome), click the Minutes icon on that tab, then press Start.</p>
+      <div id="err" class="note bad hidden"></div>
+
+      <div class="quick">
+        <button id="askedBtn" class="ghost">🙋 What was I asked?</button>
+        <button id="missBtn" class="ghost">⏪ What did I miss?</button>
+      </div>
+
+      <div id="answer" class="hidden"></div>
+
+      <form id="askForm" class="ask">
+        <input id="askInput" placeholder="Ask about this meeting… e.g. what's the deadline?" />
+        <button class="ghost" type="submit">Ask</button>
+      </form>
+
+      <div class="tHead">
+        <h2>Live transcript</h2>
+        <div class="row">
+          <button id="copyBtn" class="link small">Copy</button>
+          <button id="sumBtn" class="link small">Full summary ↗</button>
+        </div>
+      </div>
+      <div id="transcript" class="transcript"><p class="muted small">Nothing yet.</p></div>
+    </section>
+
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Minutes Live",
+  "version": "0.1.0",
+  "description": "Listens to your meeting tab with you. Catch up on what you missed and get a reply when you're asked something.",
+  "permissions": ["sidePanel", "tabCapture", "offscreen", "storage", "activeTab"],
+  "host_permissions": ["https://*.vercel.app/*", "http://localhost:3000/*"],
+  "background": { "service_worker": "background.js" },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "action": {
+    "default_title": "Minutes Live",
+    "default_icon": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" }
+  },
+  "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "minimum_chrome_version": "116"
+}

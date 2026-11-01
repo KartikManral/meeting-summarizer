@@ -101,3 +101,42 @@ Send them the link and the app password. They type the password into the box at 
 - `app/globals.css`: colors and layout. The color palette is at the top.
 - `app/api/summarize/route.js`: sends the transcript to Claude.
 - `app/api/transcribe/route.js`: sends audio to Groq Whisper.
+
+---
+
+## Minutes Live: the Chrome extension
+
+A side panel that listens to your meeting tab with you:
+
+- **Live transcript**, a new line about every 10 seconds
+- **🔔 Automatic alert** when your name comes up: what you were asked, who asked it, and a reply you could say
+- **🙋 What was I asked?** if you zoned out and nobody said your name
+- **⏪ What did I miss?** for the last few minutes in bullets
+- **Ask box**, e.g. "what deadline did they agree on?"
+- **Full summary ↗** sends the whole transcript to your Minutes app
+
+It uses your deployed Minutes app (same free keys), so deploy the app first.
+
+### Install (one time)
+
+1. Open `chrome://extensions` in Chrome.
+2. Turn on **Developer mode** (top-right).
+3. Click **Load unpacked** and choose the `extension` folder inside this project.
+4. Pin it: click the puzzle icon in Chrome's toolbar, then the pin next to **Minutes Live**.
+
+### Use it in a meeting
+
+1. Join your meeting in Chrome (Google Meet, or Zoom/Teams in the browser).
+2. **On the meeting tab**, click the Minutes icon. The side panel opens.
+3. First time only: fill in settings (your app link, password, your name) and click Save.
+4. Click **Start listening to this tab**.
+
+Your own voice isn't part of the tab's audio. To include it, tick **Also record my microphone** and click **Allow microphone** once.
+
+### Good to know
+
+- Tell people you're taking AI notes. Recording others without telling them can break workplace, college or legal rules.
+- Lines arrive ~10 seconds behind the conversation.
+- The transcript has no speaker names. Adding nicknames people use for you (e.g. "KM") helps the alert trigger.
+- Free limits: Groq's free tier comfortably covers a few hours of meetings a day.
+- After editing extension files, click the ↻ reload icon on the extension's card in `chrome://extensions`.

@@ -43,6 +43,14 @@ export default function Home() {
     fetch("/api/status").then((r) => r.json()).then(setStatus).catch(() => setStatus({}));
     setHistory(store.get(HISTORY_KEY, []));
     setPassword(store.get(PASS_KEY, ""));
+    // The Chrome extension opens this page with the live transcript in the URL hash.
+    const m = window.location.hash.match(/^#transcript=(.*)$/s);
+    if (m) {
+      try {
+        setTranscript(decodeURIComponent(m[1]));
+      } catch {}
+      window.history.replaceState(null, "", window.location.pathname);
+    }
   }, []);
 
   const headers = (extra = {}) => ({ ...extra, ...(password ? { "x-app-password": password } : {}) });

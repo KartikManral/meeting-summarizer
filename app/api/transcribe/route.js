@@ -14,10 +14,11 @@ export async function POST(request) {
     );
   }
 
-  let file;
+  let file, prompt;
   try {
     const form = await request.formData();
     file = form.get("file");
+    prompt = form.get("prompt");
   } catch {
     return Response.json({ error: "Could not read the uploaded audio." }, { status: 400 });
   }
@@ -29,6 +30,8 @@ export async function POST(request) {
   out.append("file", file, file.name || "audio.wav");
   out.append("model", "whisper-large-v3-turbo");
   out.append("response_format", "json");
+  // Optional hint (previous words, names) that helps Whisper spell names right and stay consistent.
+  if (typeof prompt === "string" && prompt.trim()) out.append("prompt", prompt.slice(-800));
 
   let res;
   try {
