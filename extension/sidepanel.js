@@ -41,47 +41,15 @@ $("save").onclick = async () => {
     $("saved").textContent = "";
     if (settings.name) toggleSettings(false);
   }, 700);
+  // Clear the "fill in settings" message once they're saved.
+  if (settings.name && /settings/i.test(live.error || "")) {
+    const { live: l = {} } = await chrome.storage.local.get("live");
+    await chrome.storage.local.set({ live: { ...l, error: "" } });
+  }
 };
 
 // ---------- start / stop ----------
-$("startBtn").onclick = async () => {
-  showErr("");
-  if (live.status === "listening" || live.status === "starting") {
-    chrome.runtime.sendMessage({ type: "stop" });
-    return;
-  }
-  if (!settings.name) {
-    toggleSettings(true);
-    return showErr("Add your name in settings first, so I know when someone's talking to you.");
-  }
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab || /^(chrome|edge|about|chrome-extension):/.test(tab.url || "")) {
-    return showErr("Switch to your meeting tab first.");
-  }
-  let streamId;
-  try {
-    streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tab.id });
-  } catch (e) {
-    return showErr(
-      "Chrome needs you to click the Minutes icon (in the toolbar) while you're on the meeting tab. Do that, then press Start again."
-    );
-  }
-  await chrome.storage.local.set({ lines: [] });
-  lastSeenCount = 0;
-  $("answer").classList.add("hidden");
-  chrome.runtime.sendMessage({
-    type: "start",
-    tabTitle: tab.title,
-    payload: {
-      streamId,
-      withMic: settings.withMic,
-      appUrl: settings.appUrl,
-      password: settings.password,
-      name: settings.name,
-      aliases: settings.aliases,
-    },
-  });
-};
+$("startBtn").onclick = () => chrome.runtime.sendMessage({ type: "stop" });
 
 // ---------- rendering ----------
 function nameRegex() {
@@ -128,9 +96,8 @@ function renderStatus() {
   $("dot").className = "dot" + (on ? " on" : "");
   $("statusText").textContent =
     live.status === "starting" ? "Starting…" : on ? `Listening${live.tabTitle ? " to " + live.tabTitle.slice(0, 32) : ""}` : "Not listening";
-  $("startBtn").textContent = on ? "Stop listening" : "Start listening to this tab";
-  $("startBtn").classList.toggle("stop", on);
-  $("hint").classList.toggle("hidden", on || lines.length > 0);
+  $("startBtn").classList.toggle("hidden", !on);
+  $("howto").classList.toggle("hidden", on);
   showErr(live.error || (on ? live.lastChunkError : "") || "");
 }
 
@@ -316,7 +283,12 @@ async function loadState() {
 
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.live) {
+    const was = live.status;
     live = changes.live.newValue || {};
+    if (live.status === "starting" && was !== "starting") {
+      lastSeenCount = 0;
+      $("answer").classList.add("hidden");
+    }
     renderStatus();
   }
   if (changes.lines) {

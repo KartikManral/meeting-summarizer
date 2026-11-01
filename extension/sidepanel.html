@@ -44,8 +44,10 @@
         <span id="statusText">Not listening</span>
         <span id="timer" class="muted"></span>
       </div>
-      <button id="startBtn" class="primary big">Start listening to this tab</button>
-      <p id="hint" class="muted small">Open your meeting (Google Meet, Zoom or Teams in Chrome), click the Minutes icon on that tab, then press Start.</p>
+      <div id="howto" class="howto">
+        <b>To start:</b> go to your meeting tab and click the <span class="mini">M</span> Minutes icon in Chrome's toolbar. It starts listening right away.
+      </div>
+      <button id="startBtn" class="primary big stop hidden">Stop listening</button>
       <div id="err" class="note bad hidden"></div>
 
       <div class="quick">

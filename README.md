@@ -127,9 +127,11 @@ It uses your deployed Minutes app (same free keys), so deploy the app first.
 ### Use it in a meeting
 
 1. Join your meeting in Chrome (Google Meet, or Zoom/Teams in the browser).
-2. **On the meeting tab**, click the Minutes icon. The side panel opens.
-3. First time only: fill in settings (your app link, password, your name) and click Save.
-4. Click **Start listening to this tab**.
+2. **On the meeting tab**, click the Minutes icon in the toolbar. The side panel opens and it starts listening.
+   (First time only: fill in settings with your app link, password and name, click Save, then click the icon again.)
+3. Click **Stop listening** in the panel when the meeting ends.
+
+Chrome only lets extensions capture a tab's audio when you click the extension's own icon on that tab, so starting happens from the icon rather than a button in the panel.
 
 Your own voice isn't part of the tab's audio. To include it, tick **Also record my microphone** and click **Allow microphone** once.
 
